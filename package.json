@@ -1,0 +1,8 @@
+{
+  "name": "private-media-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/codemilli/private-media-server",
+  "author": "codemilli <hckrmoon@gmail.com>",
+  "license": "MIT"
+}
