@@ -2,34 +2,25 @@ require('dotenv').config({ path: '.env' });
 
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as multer from 'multer';
-import { MediaEntity } from "./shared/MediaEntity";
-const upload = multer();
+
+import { MetadataRouter } from "./modules/metadata/MetadataRouter";
+import { ImageRouter } from "./modules/images/ImageRouter";
 
 admin.initializeApp();
 
 const express = require('express');
 const cors = require('cors');
-
 const app = express();
 
 // Automatically allow cross-origin requests
-app.use(cors({ origin: true }));
-
-app.get('/metadata', async (req, res) => {
-  let response;
-  try {
-    const mediaEntity = new MediaEntity('DatabaseMetadata');
-    response = await mediaEntity.query({});
-  } catch(err) {
-    response = err.message;
+app.use(cors({
+  origin: function (origin, callback) {
+    callback(null, true);
   }
-  res.json(response);
-});
+}));
 
-app.post('/upload', upload.any(), (req, res) => {
-  res.json(200);
-});
+app.use('/metadata', MetadataRouter);
+app.use('/images', ImageRouter);
 
 exports.assets = functions
   .region('asia-northeast3')
