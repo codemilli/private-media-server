@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { MediaEntity } from "../../shared/MediaEntity";
+import { getImageStorage } from "../../shared/Storage";
 
 export namespace ImageController {
   export const getImage = async (req, res) => {
@@ -20,46 +21,30 @@ export namespace ImageController {
   export const uploadImage = async (req, res) => {
     const busboy = new Busboy({ headers: req.headers });
     const tmpdir = os.tmpdir();
-    // This object will accumulate all the fields, keyed by their name
-    const fields = {};
-
-    // This object will accumulate all the uploaded files, keyed by their name.
-    const uploads = {};
-
-    // This code will process each non-file field in the form.
-    busboy.on('field', (fieldname, val) => {
-      /**
-       *  TODO(developer): Process submitted field values here
-       */
-      console.log(`Processed field ${fieldname}: ${val}.`);
-      fields[fieldname] = val;
-    });
-
+    const fileInfo = { contentType: '', filename: '' };
+    const uploads = {} as any;
     const fileWrites = [];
+    const bufs = [];
 
-    // This code will process each file uploaded.
-    busboy.on('file', (fieldname, file, filename) => {
-      // Note: os.tmpdir() points to an in-memory file system on GCF
-      // Thus, any files in it must fit in the instance's memory.
-      console.log(`Processed file ${filename}`);
-      const filepath = path.join(tmpdir, filename);
-      uploads[fieldname] = filepath;
+    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      if (fieldname === 'image') {
+        console.log(`Processed file ${filename}`, encoding, mimetype);
+        const filepath = path.join(tmpdir, filename);
+        uploads[fieldname] = filepath;
 
-      const writeStream = fs.createWriteStream(filepath);
-      file.pipe(writeStream);
+        const writeStream = fs.createWriteStream(filepath);
+        file.pipe(writeStream);
+        file.on('data', (d) => bufs.push(d));
+        fileInfo.contentType = mimetype;
+        fileInfo.filename = filename;
 
-      // File was processed by Busboy; wait for it to be written.
-      // Note: GCF may not persist saved files across invocations.
-      // Persistent files must be kept in other locations
-      // (such as Cloud Storage buckets).
-      const promise = new Promise((resolve, reject) => {
-        file.on('end', () => {
-          writeStream.end();
+        const promise = new Promise((resolve, reject) => {
+          file.on('end', () => writeStream.end());
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
         });
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
-      fileWrites.push(promise);
+        fileWrites.push(promise);
+      }
     });
 
     // Triggered once all uploaded files are processed by Busboy.
@@ -67,14 +52,20 @@ export namespace ImageController {
     busboy.on('finish', async () => {
       await Promise.all(fileWrites);
 
-      /**
-       * TODO(developer): Process saved files here
-       */
-      for (const file in uploads) {
-        console.log('File : ', file);
-        fs.unlinkSync(uploads[file]);
+      for (const key in uploads) {
+        const filePath = uploads[key];
+        const ext = fileInfo.filename.split('.').slice(-1).pop();
+        fs.unlinkSync(filePath);
+        const mediaEntity = new MediaEntity(req.query.serviceKey);
+        const bucket = getImageStorage()
+        const bucketFile = `images/${mediaEntity.Id}/${mediaEntity.Id}.${ext}`;
+        const file = bucket.file(bucketFile);
+        const options = { resumable: false, metadata: { contentType: fileInfo.contentType } };
+        const buffer = Buffer.concat(bufs);
+        await file.save(buffer, options);
       }
-      res.send();
+
+      res.json(200);
     });
 
     busboy.end(req.rawBody);

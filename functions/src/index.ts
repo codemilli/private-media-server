@@ -1,12 +1,9 @@
 require('dotenv').config({ path: '.env' });
 
 import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
 
 import { MetadataRouter } from "./modules/metadata/MetadataRouter";
 import { ImageRouter } from "./modules/images/ImageRouter";
-
-admin.initializeApp();
 
 const express = require('express');
 const cors = require('cors');

@@ -5,7 +5,7 @@ import { DocumentClient } from "aws-sdk/lib/dynamodb/document_client"
 export abstract class DynamoEntity {
   protected abstract TableName: string;
   protected abstract ServiceKey: string;
-  protected Id: string;
+  public Id: string;
 
   protected constructor() {
     this.Id = uuid.v1();
