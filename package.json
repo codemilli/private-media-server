@@ -16,6 +16,7 @@
     "typescript": "^4.3.5"
   },
   "scripts": {
-    "dev:functions": "ts-node -r dotenv/config functions/storage.ts dotenv_config_path=./.env"
+    "dev:functions": "firebase emulators:start --only functions",
+    "deploy:functions": "firebase deploy --only functions"
   }
 }

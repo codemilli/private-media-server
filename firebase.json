@@ -1,7 +1,7 @@
 {
   "functions": {
-    "predeploy": "npm --prefix functions run build",
-    "source": "functions"
+    "source": "functions",
+    "runtime": "nodejs14"
   },
   "emulators": {
     "functions": {
