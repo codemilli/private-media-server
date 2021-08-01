@@ -2,9 +2,9 @@ require('dotenv').config({ path: '.env' });
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const DynamoEntity = require("./modules/DynamoEntity");
-// const multer = require('multer');
-// const upload = multer();
+const MediaEntity = require("./modules/media/MediaEntity");
+const multer = require('multer');
+const upload = multer();
 
 admin.initializeApp();
 
@@ -20,7 +20,7 @@ app.get('/', async (req, res) => {
   const { postType = '' } = req.query;
   let response;
   try {
-    response = await DynamoEntity.query({
+    response = await MediaEntity.query({
       FilterExpression: 'postType = :pt',
       ExpressionAttributeValues: {
         ':pt': postType,
@@ -32,9 +32,9 @@ app.get('/', async (req, res) => {
   res.json(response);
 });
 
-// app.post('/upload', upload.any(), (req, res) => {
-//   res.json(200);
-// });
+app.post('/upload', upload.any(), (req, res) => {
+  res.json(200);
+});
 
 exports.assets = functions
   .region('asia-northeast3')

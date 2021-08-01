@@ -1,4 +1,4 @@
-const AWS = require('aws-sdk');
+import AWS from 'aws-sdk';
 
 AWS.config.update({
   region: 'ap-northeast-2',
@@ -11,8 +11,6 @@ AWS.config.update({
   convertResponseTypes: false,
 });
 
-const ddb = new AWS.DynamoDB.DocumentClient({
+export const ddb = new AWS.DynamoDB.DocumentClient({
   region: 'ap-northeast-2',
 });
-
-exports.ddb = ddb;
