@@ -36,5 +36,8 @@ app.get('/', async (req, res) => {
 //   res.json(200);
 // });
 
-exports.assets = functions.region('asia-northeast3').https.onRequest(app);
+exports.assets = functions
+  .region('asia-northeast3')
+  .runWith({ memory: '2GB' })
+  .https.onRequest(app);
 
