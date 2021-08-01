@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { ddb } from './ddb';
 import { DocumentClient } from "aws-sdk/lib/dynamodb/document_client"
 
@@ -7,11 +7,11 @@ export abstract class DynamoEntity {
   protected abstract ServiceKey: string;
   protected Id: string;
 
-  constructor() {
+  protected constructor() {
     this.Id = uuid.v1();
   }
 
-  async getItem(id) {
+  public async getItem(id: string) {
     return ddb.get({
       TableName: this.TableName,
       Key: {
@@ -21,7 +21,7 @@ export abstract class DynamoEntity {
     }).promise();
   }
 
-  async query(options: Partial<DocumentClient.QueryInput>) {
+  public async query(options: Partial<DocumentClient.QueryInput>) {
     const defaultOptions = {
       TableName: this.TableName,
       KeyConditionExpression: 'ServiceKey = :sk',
@@ -42,7 +42,7 @@ export abstract class DynamoEntity {
     return ddb.query(merged).promise();
   }
 
-  async delete(id) {
+  public async delete(id: string) {
     return ddb.delete({
       TableName: this.TableName,
       Key: {
@@ -52,7 +52,7 @@ export abstract class DynamoEntity {
     }).promise();
   }
 
-  async save() {
+  public async save() {
     return ddb.put({
       TableName: this.TableName,
       Item: this,
