@@ -5,15 +5,14 @@ export enum MediaType {
   Video = 'VIDEO',
 }
 
-export class MediaEntity extends DynamoEntity {
-  public mediaType: MediaType;
+export abstract class MediaEntity extends DynamoEntity {
   public sourceUrl: string;
-  public imageUrl: string;
-  public imageWidth: number;
-  public imageHeight: number;
-  public resized: any;
-  public test: any;
-  protected TableName = `private-media`;
+  public sourceWidth: number;
+  public sourceHeight: number;
+  public contentType: string;
+  public ext: string;
+  protected TableName = 'private-media';
+  protected abstract mediaType: MediaType;
   constructor(protected ServiceKey: string) {
     super();
   }

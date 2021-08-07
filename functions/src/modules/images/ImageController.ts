@@ -4,16 +4,15 @@ import * as path from 'path';
 import * as os from 'os';
 import * as sharp from 'sharp';
 import * as sizeOf from 'buffer-image-size';
-import { MediaEntity, MediaType } from "../../shared/MediaEntity";
 import { getBucket } from "../../shared/aws";
-
+import { ImageEntity } from "../../shared/ImageEntity";
 
 export namespace ImageController {
   export const getImage = async (req, res) => {
     const { serviceKey, id } = req.query;
     let response;
     try {
-      const mediaEntity = new MediaEntity(serviceKey);
+      const mediaEntity = new ImageEntity(serviceKey);
       response = await mediaEntity.getItem(id);
     } catch(err) {
       response = err.message;
@@ -58,15 +57,14 @@ export namespace ImageController {
         const filePath = uploads[key];
         const ext = fileInfo.filename.split('.').slice(-1).pop();
         fs.unlinkSync(filePath);
-        const mediaEntity = new MediaEntity(req.query.serviceKey);
+        const mediaEntity = new ImageEntity(req.query.serviceKey);
         const bucketFile = `images/${mediaEntity.Id}/${mediaEntity.Id}.${ext}`;
         const buffer = Buffer.concat(bufs);
         const [originalImage, ...resized] = await uploadImageToS3(bucketFile, buffer, fileInfo.contentType, ext, resize);
-        mediaEntity.mediaType = MediaType.Image;
-        mediaEntity.imageUrl = originalImage.url;
-        mediaEntity.imageWidth = originalImage.width;
-        mediaEntity.imageHeight = originalImage.height;
-        mediaEntity.resized = resized.reduce((acc, val) => {
+        mediaEntity.sourceUrl = originalImage.url;
+        mediaEntity.sourceWidth = originalImage.width;
+        mediaEntity.sourceHeight = originalImage.height;
+        mediaEntity.resize = resized.reduce((acc, val) => {
           acc[val.width] = val;
           return acc;
         }, {});

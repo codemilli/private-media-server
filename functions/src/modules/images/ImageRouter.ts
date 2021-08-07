@@ -5,7 +5,7 @@ import { ServiceKeyValidationMiddleware } from "../../shared/ServiceKeyValidatio
 const router = express.Router();
 const upload = multer();
 
-router.get('/', ServiceKeyValidationMiddleware, ImageController.getImage);
+router.get('/', ImageController.getImage);
 router.post('/upload', ServiceKeyValidationMiddleware, upload.any(), ImageController.uploadImage);
 
 export const ImageRouter = router;
