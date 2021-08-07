@@ -11,6 +11,7 @@ export class MediaEntity extends DynamoEntity {
   public imageUrl: string;
   public imageWidth: number;
   public imageHeight: number;
+  public resized: any;
   public test: any;
   protected TableName = `private-media`;
   constructor(protected ServiceKey: string) {

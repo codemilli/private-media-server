@@ -61,12 +61,15 @@ export namespace ImageController {
         const mediaEntity = new MediaEntity(req.query.serviceKey);
         const bucketFile = `images/${mediaEntity.Id}/${mediaEntity.Id}.${ext}`;
         const buffer = Buffer.concat(bufs);
-        const [originalImage, resizedImage] = await uploadImageToS3(bucketFile, buffer, fileInfo.contentType, ext, resize);
+        const [originalImage, ...resized] = await uploadImageToS3(bucketFile, buffer, fileInfo.contentType, ext, resize);
         mediaEntity.mediaType = MediaType.Image;
         mediaEntity.imageUrl = originalImage.url;
         mediaEntity.imageWidth = originalImage.width;
         mediaEntity.imageHeight = originalImage.height;
-        mediaEntity.test = resizedImage;
+        mediaEntity.resized = resized.reduce((acc, val) => {
+          acc[val.width] = val;
+          return acc;
+        }, {});
         await mediaEntity.save();
         result = mediaEntity;
       }
@@ -95,13 +98,14 @@ const uploadImageToS3 = async (directory: string = '', buffer, contentType: stri
     return sharp(buffer).resize(resizeVal).toBuffer();
   }));
   const resizedBufferSizes = resizedBuffers.map((buf) => sizeOf(buf));
-  const [originalImage, ...resized] = await Promise.all([
-    uploadPromise(directory, buffer, contentType),
-    ...resizedBuffers.map((buf, index) => {
-      const dir = directory.replace(`.${ext}`, `_resized_${resizedBufferSizes[index].width}.${ext}`);
-      return uploadPromise(dir, buf, contentType);
-    })
-  ]);
+  const originalImage = await uploadPromise(directory, buffer, contentType);
+  const resized = await Promise.all(resizedBuffers.map(async (buf, index) => {
+    if (resizedBufferSizes[index].width >= originalBufferSize.width) {
+      return originalImage;
+    }
+    const dir = directory.replace(`.${ext}`, `_resized_${resizedBufferSizes[index].width}.${ext}`);
+    return uploadPromise(dir, buf, contentType);
+  }));
   return [
     {
       url: originalImage,
