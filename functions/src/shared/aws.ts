@@ -14,3 +14,7 @@ AWS.config.update({
 export const ddb = new AWS.DynamoDB.DocumentClient({
   region: 'ap-northeast-2',
 });
+
+export const getBucket = (bucket: string) => {
+  return new AWS.S3({ params: { Bucket: bucket } });
+}

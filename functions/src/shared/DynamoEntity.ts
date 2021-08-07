@@ -1,5 +1,5 @@
 import * as uuid from 'uuid';
-import { ddb } from './ddb';
+import { ddb } from './aws';
 import { DocumentClient } from "aws-sdk/lib/dynamodb/document_client"
 
 export abstract class DynamoEntity {

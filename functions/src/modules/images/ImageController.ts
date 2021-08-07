@@ -2,8 +2,11 @@ import * as Busboy from 'busboy';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { MediaEntity } from "../../shared/MediaEntity";
-import { getImageStorage } from "../../shared/Storage";
+import * as sharp from 'sharp';
+import * as sizeOf from 'buffer-image-size';
+import { MediaEntity, MediaType } from "../../shared/MediaEntity";
+import { getBucket } from "../../shared/aws";
+
 
 export namespace ImageController {
   export const getImage = async (req, res) => {
@@ -19,6 +22,7 @@ export namespace ImageController {
   };
 
   export const uploadImage = async (req, res) => {
+    const { resize } = req.query;
     const busboy = new Busboy({ headers: req.headers });
     const tmpdir = os.tmpdir();
     const fileInfo = { contentType: '', filename: '' };
@@ -28,7 +32,6 @@ export namespace ImageController {
 
     busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
       if (fieldname === 'image') {
-        console.log(`Processed file ${filename}`, encoding, mimetype);
         const filepath = path.join(tmpdir, filename);
         uploads[fieldname] = filepath;
 
@@ -47,27 +50,87 @@ export namespace ImageController {
       }
     });
 
-    // Triggered once all uploaded files are processed by Busboy.
-    // We still need to wait for the disk writes (saves) to complete.
     busboy.on('finish', async () => {
       await Promise.all(fileWrites);
 
+      let result;
       for (const key in uploads) {
         const filePath = uploads[key];
         const ext = fileInfo.filename.split('.').slice(-1).pop();
         fs.unlinkSync(filePath);
         const mediaEntity = new MediaEntity(req.query.serviceKey);
-        const bucket = getImageStorage()
         const bucketFile = `images/${mediaEntity.Id}/${mediaEntity.Id}.${ext}`;
-        const file = bucket.file(bucketFile);
-        const options = { resumable: false, metadata: { contentType: fileInfo.contentType } };
         const buffer = Buffer.concat(bufs);
-        await file.save(buffer, options);
+        const [originalImage, resizedImage] = await uploadImageToS3(bucketFile, buffer, fileInfo.contentType, ext, resize);
+        mediaEntity.mediaType = MediaType.Image;
+        mediaEntity.imageUrl = originalImage.url;
+        mediaEntity.imageWidth = originalImage.width;
+        mediaEntity.imageHeight = originalImage.height;
+        mediaEntity.test = resizedImage;
+        await mediaEntity.save();
+        result = mediaEntity;
       }
-
-      res.json(200);
+      res.json(result);
     });
 
     busboy.end(req.rawBody);
   };
+}
+
+const option = {
+  bucket: process.env.AWS_BUCKET,
+}
+
+interface Image {
+  url: string;
+  width: number;
+  height: number;
+}
+
+const uploadImageToS3 = async (directory: string = '', buffer, contentType: string, ext: string, resize = ''): Promise<Image[]> => {
+  const resizeList = resize.split(',').filter(val => val && Number.isInteger(Number(val))).map(val => Number(val));
+  const originalBufferSize = sizeOf(buffer);
+  const resizedBuffers = await Promise.all(resizeList.map((resize) => {
+    const resizeVal = Math.min(originalBufferSize.width, resize);
+    return sharp(buffer).resize(resizeVal).toBuffer();
+  }));
+  const resizedBufferSizes = resizedBuffers.map((buf) => sizeOf(buf));
+  const [originalImage, ...resized] = await Promise.all([
+    uploadPromise(directory, buffer, contentType),
+    ...resizedBuffers.map((buf, index) => {
+      const dir = directory.replace(`.${ext}`, `_resized_${resizedBufferSizes[index].width}.${ext}`);
+      return uploadPromise(dir, buf, contentType);
+    })
+  ]);
+  return [
+    {
+      url: originalImage,
+      width: originalBufferSize.width,
+      height: originalBufferSize.height,
+    },
+    ...resized.map((val, idx) => ({
+      url: val,
+      width: resizedBufferSizes[idx].width,
+      height: resizedBufferSizes[idx].height,
+    })),
+  ];
+}
+
+const uploadPromise = (directory: string, buffer: Buffer, contentType: string): Promise<string> => {
+  const s3Bucket = getBucket(option.bucket);
+  const data = {
+    Bucket: option.bucket,
+    Key: directory,
+    Body: buffer,
+    ContentType: contentType
+  };
+  return new Promise((resolve, reject) => {
+    s3Bucket.upload(data, (err, response) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(response.Location as string);
+      }
+    });
+  });
 }
