@@ -6,9 +6,14 @@ export abstract class DynamoEntity {
   protected abstract TableName: string;
   protected abstract ServiceKey: string;
   public Id: string;
+  public createdAt: string;
+  public updatedAt: string;
 
   protected constructor() {
+    const now = new Date();
     this.Id = uuid.v1();
+    this.createdAt = now.toISOString()
+    this.updatedAt = now.toISOString()
   }
 
   public async getItem(id: string) {
