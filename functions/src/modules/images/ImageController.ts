@@ -51,10 +51,9 @@ export namespace ImageController {
 
     busboy.on('finish', async () => {
       await Promise.all(fileWrites);
-
       let result;
-      for (const key in uploads) {
-        const filePath = uploads[key];
+      if (uploads.image) {
+        const filePath = uploads.image;
         const ext = fileInfo.filename.split('.').slice(-1).pop();
         fs.unlinkSync(filePath);
         const mediaEntity = new ImageEntity(req.query.serviceKey);
@@ -64,6 +63,8 @@ export namespace ImageController {
         mediaEntity.sourceUrl = originalImage.url;
         mediaEntity.sourceWidth = originalImage.width;
         mediaEntity.sourceHeight = originalImage.height;
+        mediaEntity.contentType = fileInfo.contentType;
+        mediaEntity.ext = ext;
         mediaEntity.resize = resized.reduce((acc, val) => {
           acc[val.width] = val;
           return acc;
@@ -74,7 +75,7 @@ export namespace ImageController {
       res.json(result);
     });
 
-    busboy.end(req.rawBody);
+    req.pipe(busboy);
   };
 }
 
