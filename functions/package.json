@@ -2,11 +2,11 @@
   "name": "functions",
   "scripts": {
     "build": "tsc",
+    "deploy": "npm run build && pm2 restart lib/index.js --name cms.hcker.co",
     "serve:watch": "nodemon -e ts -w ./src -x yarn serve",
     "serve": "ts-node src/index.ts",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"
   },
   "engines": {
