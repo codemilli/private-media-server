@@ -3,9 +3,14 @@ import * as fs from 'fs';
 import * as util from 'util';
 import * as path from 'path';
 import * as os from 'os';
+import * as ffmpeg from '@ffmpeg-installer/ffmpeg';
+import * as ffprobe from '@ffprobe-installer/ffprobe';
 import * as FfmpegCommand from 'fluent-ffmpeg';
 import { getBucket } from "../../shared/aws";
 import { VideoEntity } from "../../shared/VideoEntity";
+
+FfmpegCommand.setFfmpegPath(ffmpeg.path);
+FfmpegCommand.setFfprobePath(ffprobe.path);
 
 export namespace VideoController {
   export const get = async (req, res) => {
