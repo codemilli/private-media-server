@@ -8,8 +8,10 @@ import { VideoRouter } from "./modules/videos/VideoRouter";
 
 const express = require('express');
 const cors = require('cors');
+const timeout = require('connect-timeout');
 const app = express();
 
+app.use(timeout('10m'));
 // Automatically allow cross-origin requests
 app.use(cors({
   origin: function (origin, callback) {
