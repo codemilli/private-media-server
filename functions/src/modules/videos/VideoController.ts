@@ -61,7 +61,6 @@ export namespace VideoController {
         const command = new FfmpegCommand(filePath);
         command
           .outputOptions([
-            '-codec: copy',
             '-bsf:v h264_mp4toannexb',
             '-start_number 0',
             '-hls_time 3',
