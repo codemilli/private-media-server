@@ -52,7 +52,7 @@
       form.append('name', f.name);
       form.append('image', f);
       axios
-        .post('https://cms.hcker.co/images/upload?serviceKey=KingsMan&resize=30,50,120,240,600,1080', form, {
+        .post('https://cms.hcker.co/images/upload?serviceKey=KingsMan&resize=30,50,120,240,480,720,1080', form, {
           timeout,
         })
         .then(response => {
